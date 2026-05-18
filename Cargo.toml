@@ -73,6 +73,7 @@ futures = "0.3.32"
 hmac = "0.13.0"
 log = "0.4.29"
 mime_guess = "2.0.5"
+openssl-probe = "0.1"
 pin-project-lite = "0.2.17"
 rand = "0.10.0"
 wreq = { version = "5.3.0", default-features = false, features = ["json", "stream", "multipart", "socks", "webpki-roots"] }
