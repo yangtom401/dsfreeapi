@@ -1,5 +1,5 @@
 FROM alpine:3.21
-RUN apk add --no-cache ca-certificates
+RUN apk add --no-cache ca-certificates && update-ca-certificates
 
 WORKDIR /app
 
