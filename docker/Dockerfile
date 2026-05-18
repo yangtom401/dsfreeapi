@@ -5,7 +5,7 @@ WORKDIR /app
 
 ARG TARGETARCH
 COPY target/docker/${TARGETARCH}/ds-free-api /app/ds-free-api
-COPY docker/config.example.toml /app/config/config.toml
+COPY config.example.toml /app/config/config.toml
 
 ENV RUST_LOG=info \
     DS_DATA_DIR=/app/data \
