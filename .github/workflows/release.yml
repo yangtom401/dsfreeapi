@@ -37,56 +37,6 @@ jobs:
           name: web-dist
           path: web/dist/
           if-no-files-found: error
-  build-linux-gnu:
-    needs: [build-frontend]
-    strategy:
-      matrix:
-        include:
-          - target: x86_64-unknown-linux-gnu
-            suffix: linux-x86_64-gnu
-            runner: ubuntu-latest
-          - target: aarch64-unknown-linux-gnu
-            suffix: linux-aarch64-gnu
-            runner: ubuntu-24.04-arm
-    runs-on: ${{ matrix.runner }}
-    steps:
-      - uses: actions/checkout@v6
-      - name: Download frontend assets
-        uses: actions/download-artifact@v8
-        with:
-          name: web-dist
-          path: web/dist/
-      - name: Resolve tag
-        id: meta
-        run: |
-          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-            echo "tag=${{ github.event.inputs.tag }}" >> "$GITHUB_OUTPUT"
-          else
-            echo "tag=${GITHUB_REF_NAME}" >> "$GITHUB_OUTPUT"
-          fi
-      - name: Install Rust
-        uses: actions-rust-lang/setup-rust-toolchain@v1
-        with:
-          target: ${{ matrix.target }}
-          cache-key: ${{ matrix.target }}
-      - name: Install build dependencies (aarch64)
-        if: ${{ matrix.runner == 'ubuntu-24.04-arm' }}
-        run: sudo apt-get update && sudo apt-get install -y build-essential cmake pkg-config g++
-      - name: Build
-        run: cargo build --release --target ${{ matrix.target }}
-      - name: Package
-        run: |
-          name="ds-free-api-${{ steps.meta.outputs.tag }}-${{ matrix.suffix }}"
-          mkdir -p "$name"
-          cp "target/${{ matrix.target }}/release/ds-free-api" "$name/"
-          cp LICENSE README.md README.en.md config.example.toml "$name/"
-          tar czf "$name.tar.gz" "$name"
-      - name: Upload artifact
-        uses: actions/upload-artifact@v7
-        with:
-          name: ${{ matrix.suffix }}
-          path: "*.tar.gz"
-          if-no-files-found: error
 
   build-linux-musl:
     needs: [build-frontend]
@@ -163,112 +113,6 @@ jobs:
           path: "*.tar.gz"
           if-no-files-found: error
 
-  build-macos:
-    needs: [build-frontend]
-    runs-on: macos-latest
-    strategy:
-      matrix:
-        include:
-          - target: x86_64-apple-darwin
-            suffix: macos-x86_64
-          - target: aarch64-apple-darwin
-            suffix: macos-aarch64
-    steps:
-      - uses: actions/checkout@v6
-      - name: Download frontend assets
-        uses: actions/download-artifact@v8
-        with:
-          name: web-dist
-          path: web/dist/
-      - name: Resolve tag
-        id: meta
-        run: |
-          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-            echo "tag=${{ github.event.inputs.tag }}" >> "$GITHUB_OUTPUT"
-          else
-            echo "tag=${GITHUB_REF_NAME}" >> "$GITHUB_OUTPUT"
-          fi
-      - name: Install Rust
-        uses: actions-rust-lang/setup-rust-toolchain@v1
-        with:
-          target: ${{ matrix.target }}
-          cache-key: ${{ matrix.target }}
-      - name: Install dependencies
-        run: |
-          brew update
-          brew install --formula cmake pkg-config llvm
-      - name: Build
-        run: cargo build --release --target ${{ matrix.target }}
-      - name: Package
-        run: |
-          name="ds-free-api-${{ steps.meta.outputs.tag }}-${{ matrix.suffix }}"
-          mkdir -p "$name"
-          cp "target/${{ matrix.target }}/release/ds-free-api" "$name/"
-          cp LICENSE README.md README.en.md config.example.toml "$name/"
-          tar czf "$name.tar.gz" "$name"
-      - name: Upload artifact
-        uses: actions/upload-artifact@v7
-        with:
-          name: ${{ matrix.suffix }}
-          path: "*.tar.gz"
-          if-no-files-found: error
-
-  build-windows:
-    needs: [build-frontend]
-    runs-on: windows-latest
-    strategy:
-      matrix:
-        include:
-          - target: x86_64-pc-windows-msvc
-            suffix: windows-x86_64
-          - target: aarch64-pc-windows-msvc
-            suffix: windows-aarch64
-    steps:
-      - uses: actions/checkout@v6
-      - name: Download frontend assets
-        uses: actions/download-artifact@v8
-        with:
-          name: web-dist
-          path: web/dist/
-      - name: Resolve tag
-        id: meta
-        shell: pwsh
-        run: |
-          if ("${{ github.event_name }}" -eq "workflow_dispatch") {
-            "tag=${{ github.event.inputs.tag }}" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
-          } else {
-            "tag=${{ github.ref_name }}" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
-          }
-      - name: Install Rust
-        uses: actions-rust-lang/setup-rust-toolchain@v1
-        with:
-          target: ${{ matrix.target }}
-          cache-key: ${{ matrix.target }}
-      - name: Install dependencies
-        shell: cmd
-        run: |
-          choco install cmake -y
-          choco install strawberryperl -y
-          choco install pkgconfiglite -y
-          choco install llvm -y
-          choco install nasm -y
-      - name: Build
-        run: cargo build --release --target ${{ matrix.target }}
-      - name: Package
-        shell: pwsh
-        run: |
-          $name = "ds-free-api-${{ steps.meta.outputs.tag }}-${{ matrix.suffix }}"
-          New-Item -ItemType Directory -Force -Path $name
-          Copy-Item "target/${{ matrix.target }}/release/ds-free-api.exe" "$name/"
-          Copy-Item LICENSE, README.md, README.en.md, config.example.toml "$name/"
-          Compress-Archive -Path $name -DestinationPath "$name.zip"
-      - name: Upload artifact
-        uses: actions/upload-artifact@v7
-        with:
-          name: ${{ matrix.suffix }}
-          path: "*.zip"
-          if-no-files-found: error
-
   docker:
     needs: [build-linux-musl]
     runs-on: ubuntu-latest
@@ -324,7 +168,7 @@ jobs:
             ghcr.io/${{ steps.docker_meta.outputs.owner }}/ds-free-api:latest
 
   release:
-    needs: [build-linux-gnu, build-linux-musl, build-macos, build-windows]
+    needs: [build-linux-musl]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
@@ -376,7 +220,7 @@ jobs:
       - name: Generate checksums
         run: |
           cd dist
-          sha256sum *.tar.gz *.zip > ../SHA256SUMS
+          sha256sum *.tar.gz > ../SHA256SUMS
           mv ../SHA256SUMS .
 
       - name: Create release
