@@ -3,7 +3,9 @@
 #[tokio::main]
 #[allow(unsafe_code)]
 async fn main() -> anyhow::Result<()> {
-    unsafe { openssl_probe::init_openssl_env_vars(); }
+    unsafe {
+        openssl_probe::init_openssl_env_vars();
+    }
     let data_dir = std::env::var("DS_DATA_DIR").unwrap_or_else(|_| ".".to_string());
     let log_path = format!("{}/logs/runtime.log", data_dir);
     ds_free_api::server::runtime_log::init(&log_path);
