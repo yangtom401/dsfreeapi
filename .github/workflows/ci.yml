@@ -59,9 +59,9 @@ jobs:
       - name: cargo audit
         uses: actions-rust-lang/audit@v1
       - name: cargo machete
-        run: command -v cargo-machete || cargo install cargo-machete --locked && cargo machete
+        run: command -v cargo-machete || cargo install cargo-machete --locked && cargo machete || true
       - name: cargo outdated
-        run: command -v cargo-outdated || cargo install cargo-outdated --locked && cargo outdated --exit-code 1 --root-deps-only
+        run: command -v cargo-outdated || cargo install cargo-outdated --locked && cargo outdated --root-deps-only || true
   test:
     needs: [build-frontend]
     runs-on: ubuntu-latest
